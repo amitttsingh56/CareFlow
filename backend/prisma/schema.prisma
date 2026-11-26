@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  passwordHash   String
+  name           String
+  role           String          // "patient", "hospital", "admin"
+  hospitalId     String?
+  hospitalRole   String?         // "Editor", "Viewer"
+  hospital       Hospital?       @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  savedHospitals SavedHospital[]
+}
+
+model Hospital {
+  id                     String            @id @default(uuid())
+  name                   String
+  regNumber              String
+  address                String
+  city                   String
+  state                  String            @default("Uttar Pradesh")
+  pincode                String
+  phone                  String
+  website                String
+  latitude               Float
+  longitude              Float
+  status                 String            @default("Pending") // "Verified", "Pending", "Suspended"
+  plan                   String            @default("Starter") // "Starter", "Professional"
+  emergencyStatus        String            @default("Normal")  // "Normal", "Busy", "Limited"
+  generalBedsAvailable   Int               @default(0)
+  generalBedsTotal       Int               @default(0)
+  icuBedsAvailable       Int               @default(0)
+  icuBedsTotal           Int               @default(0)
+  emergencyBedsAvailable Int               @default(0)
+  emergencyBedsTotal     Int               @default(0)
+  lastUpdated            DateTime          @default(now())
+  lastUpdatedBy          String            @default("Hospital dashboard")
+  dataSource             String            @default("Hospital dashboard")
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  departments            DepartmentQueue[]
+  diagnostics            DiagnosticQueue[]
+  doctors                Doctor[]
+  users                  User[]
+  savedBy                SavedHospital[]
+}
+
+model DepartmentQueue {
+  id                String   @id @default(uuid())
+  hospitalId        String
+  hospital          Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  departmentName    String
+  waitingCount      Int      @default(0)
+  estimatedWaitMins Int      @default(0)
+  lastUpdated       DateTime @default(now())
+}
+
+model DiagnosticQueue {
+  id                String   @id @default(uuid())
+  hospitalId        String
+  hospital          Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  testName          String
+  waitingCount      Int      @default(0)
+  estimatedWaitMins Int      @default(0)
+  lastUpdated       DateTime @default(now())
+}
+
+model Doctor {
+  id            String   @id @default(uuid())
+  hospitalId    String
+  hospital      Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  name          String
+  specialty     String
+  status        String   @default("On duty") // "On duty", "Off duty", "On leave"
+  roomNumber    String?
+  nextAvailable String?
+}
+
+model SavedHospital {
+  id         String   @id @default(uuid())
+  userId     String
+  hospitalId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hospital   Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, hospitalId])
+}
+
+model AuditLog {
+  id                String   @id @default(uuid())
+  action            String   // "STATUS_UPDATE", "VERIFICATION", "PLAN_CHANGE", "STAFF_INVITE", "DOCTOR_UPDATE", "CONTENT_UPDATE"
+  entityType        String   // "Hospital", "Subscription", "Verification", "PlatformContent"
+  entityId          String
+  performedByName   String
+  details           String
+  beforeValues      String?
+  afterValues       String?
+  createdAt         DateTime @default(now())
+}
+
+model PlatformContent {
+  id               String   @id @default("default")
+  headline         String   @default("Know before you go.")
+  subheadline      String   @default("Don't just find a hospital. Know its current capacity before you go.")
+  safetyDisclaimer String   @default("For emergencies, follow appropriate emergency medical guidance and do not rely solely on app availability information.")
+  updatedAt        DateTime @updatedAt
+}
+
+model ReminderLog {
+  id           String   @id @default(uuid())
+  hospitalId   String
+  hospitalName String
+  sentAt       DateTime @default(now())
+  sentBy       String
+  status       String   @default("Sent")
+}
