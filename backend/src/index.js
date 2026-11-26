@@ -2,6 +2,9 @@ import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { Server } from 'socket.io';
 import prisma from './prisma.js';
 import { initSocket } from './socket.js';
@@ -14,6 +17,9 @@ import adminPortalRoutes from './routes/adminPortal.js';
 import patientPortalRoutes from './routes/patientPortal.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
@@ -47,6 +53,20 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Serve frontend production build if available (for single-service cloud deployment like Render)
+const frontendDist = path.join(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
+      if (err) next();
+    });
+  });
+}
 
 // Auto-seed database if empty on server start
 async function checkAndAutoSeed() {
