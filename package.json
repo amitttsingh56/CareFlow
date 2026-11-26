@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node backend/src/index.js",
-    "build": "npm --prefix backend install && npm --prefix frontend install && cd backend && npx prisma db push && node prisma/seed.js && cd .. && npm --prefix frontend run build",
+    "build": "npm --prefix backend install --include=dev && npm --prefix frontend install --include=dev && cd backend && npx prisma db push && node prisma/seed.js && cd .. && npm --prefix frontend run build",
     "dev": "concurrently -k -p \"[{name}]\" -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
